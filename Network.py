@@ -134,23 +134,26 @@ class Yolov3(tf.keras.Model):
     def __init__(self):
         super().__init__()
         self.BackBone = BackBone()
-        self.sub1 = tf.keras.Sequential()
-        self.sub2 = tf.keras.Sequential()
-        self.sub1.add(Convolutional(filters=512, kernel_size=3, strides=(2,2)))
+        self.sub1 = [Convolutional(filters=512, kernel_size=3, strides=(2,2))]
+        self.sub2 = []
         for _ in range(8):
-            self.sub1.add(Residual(256, 512))
-        self.sub2.add(Convolutional(filters=1024, kernel_size=3, strides=(2,2)))
+            self.sub1.append(Residual(256, 512))
+        self.sub2.append(Convolutional(filters=1024, kernel_size=3, strides=(2,2)))
         for _ in range(4):
-            self.sub2.add(Residual(512, 1024))
-        self.sub2.add(Convolutional5())
+            self.sub2.append(Residual(512, 1024))
+        self.sub2.append(Convolutional5())
         self.upsample_1, self.upsample_2 = UpSample(), UpSample()
         self.conv5_1, self.conv5_2 = Convolutional5(), Convolutional5()
         self.Head_1, self.Head_2, self.Head_3 = Head(255), Head(255), Head(255)
     
     def call(self, inputs):
         f8 = self.BackBone(inputs)
-        f16 = self.sub1(f8)
-        f32 = self.sub2(f16)
+        f16 = f8
+        for i in self.sub1:
+            f16 = i(f16)
+        f32 = f16
+        for i in self.sub2:
+            f32 = i(f32)
         y1 = self.Head_1(f32)
         r1 = self.upsample_1(f32)
         r1 = layers.concatenate([r1, f16])
