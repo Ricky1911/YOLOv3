@@ -164,7 +164,7 @@ class Yolov3(tf.keras.Model):
         r2 = self.conv5_2(r2)
         y3 = self.Head_3(r2)
         return y1, y2, y3
-
-array = np.random.random((1,416,416,3))
-model = Yolov3()
-print(model.predict(array))
+if __name__ == "__main__":
+    array = np.random.random((1,416,416,3))
+    model = Yolov3()
+    print(model.predict(array))
