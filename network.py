@@ -1,9 +1,11 @@
 import tensorflow as tf
 import numpy as np
 layers = tf.keras.layers
+from utils import yolo_head
 
 class Convolutional(layers.Layer):
-    def __init__(self, 
+    '''conv bn leakyReLu'''
+    def __init__(self,
         filters,
         kernel_size,
         strides=(1, 1),
@@ -38,7 +40,7 @@ class Convolutional(layers.Layer):
             activity_regularizer=activity_regularizer,
             kernel_constraint=kernel_constraint,
             bias_constraint=bias_constraint)
-        
+
         self.BN = layers.BatchNormalization()
         self.LeakyRelU = layers.LeakyReLU()
 
@@ -82,33 +84,33 @@ class UpSample(layers.Layer):
     def __init__(self):
         super().__init__()
         self.upsample = layers.UpSampling2D(size=(2,2))
-    
+
     def build(self, input_shape):
         in_channel = input_shape[-1]
         self.conv = Convolutional(in_channel, 3)
-    
+
     def call(self, inputs):
         out = self.conv(inputs)
         out = self.upsample(out)
         return out
-    
+
 class Convolutional5(layers.Layer):
 
     def __init__(self):
         super().__init__()
         self.convs = []
-    
+
     def build(self, input_shape):
         in_channel = input_shape[-1]
         for _ in range(5):
             self.convs.append(Convolutional(in_channel, 3))
-    
+
     def call(self, inputs):
         out = inputs
         for layer in self.convs:
             out = layer(out)
         return out
-    
+
 class BackBone(tf.keras.Model):
 
     def __init__(self):
@@ -124,7 +126,7 @@ class BackBone(tf.keras.Model):
         )
         for _ in range(8):
             self.net.add(Residual(128, 256))
-    
+
     def call(self, inputs, training=None):
         out = self.net(inputs, training)
         return out
@@ -145,7 +147,7 @@ class Yolov3(tf.keras.Model):
         self.upsample_1, self.upsample_2 = UpSample(), UpSample()
         self.conv5_1, self.conv5_2 = Convolutional5(), Convolutional5()
         self.Head_1, self.Head_2, self.Head_3 = Head(255), Head(255), Head(255)
-    
+
     def call(self, inputs):
         f8 = self.BackBone(inputs)
         f16 = f8
@@ -164,7 +166,11 @@ class Yolov3(tf.keras.Model):
         r2 = self.conv5_2(r2)
         y3 = self.Head_3(r2)
         return y1, y2, y3
+    
+
 if __name__ == "__main__":
     array = np.random.random((1,416,416,3))
     model = Yolov3()
-    print(model.predict(array))
+    predict = model.predict(array)
+    anchors = np.array([[1,1],[2,2],[3,3]])
+    print(yolo_head(predict[0], anchors))
