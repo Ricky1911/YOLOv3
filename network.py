@@ -173,4 +173,3 @@ if __name__ == "__main__":
     model = Yolov3()
     predict = model.predict(array)
     anchors = np.array([[1,1],[2,2],[3,3]])
-    print(yolo_head(predict[0], anchors))
